@@ -1,0 +1,48 @@
+# example OTel collector config that can be used to export to this cluster
+# to be used by https://github.com/open-telemetry/opentelemetry-collector-contrib
+exporters:
+  loki:
+    endpoint: 'http://loki:3100/loki/api/v1/push'
+  logging:
+    logLevel: debug
+  otlp:
+    endpoint: tempo:4317
+    tls:
+      insecure: true
+  prometheusremotewrite:
+    endpoint: 'http://prometheus:9090/api/v1/write'
+    tls:
+      insecure: true
+
+processors:
+  batch:
+    timeout: 10s
+  resource:
+    attributes:
+      - action: upsert
+        key: deployment.environment
+        value: "dricher-local"
+
+receivers:
+  filelog:
+    include:
+      - '/logs/**/*.log'
+  otlp:
+    protocols:
+      grpc:
+      http:
+
+service:
+  pipelines:
+    logs:
+      exporters: [loki]
+      processors: [resource]
+      receivers: [filelog]
+    metrics:
+      exporters: [logging, prometheusremotewrite]
+      processors: [batch, resource]
+      receivers: [otlp]
+    traces:
+      exporters: [logging, otlp]
+      processors: [batch, resource]
+      receivers: [otlp]
