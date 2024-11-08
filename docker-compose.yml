@@ -1,30 +1,30 @@
-networks:
-  local_otel:
-    driver: bridge
-    driver_opts:
-      com.docker.network.bridge.host_binding_ipv4: 127.0.0.1
-
 services:
   grafana:
     environment:
       GF_AUTH_ANONYMOUS_ENABLED: true
       GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
       GF_AUTH_DISABLE_LOGIN_FORM: true
-      GF_FEATURE_TOGGLES_ENABLE: traceqlEditor
-    image: grafana/grafana:9.4.3
-    networks:
-      - local_otel
+    image: grafana/grafana:11.2.0
     ports:
       - "3000:3000"
     volumes:
       - ./grafana-datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml
 
+  otel-col:
+    command:
+      - --config
+      - config.yaml
+    image: otel/opentelemetry-collector-contrib:0.102.1
+    ports:
+      - "4318:4318"
+      - "4317:4317"
+    volumes:
+      - ./otel-col.yaml:/config.yaml
+
   loki:
     command:
       - -config.file=/etc/loki/local-config.yaml
     image: grafana/loki:2.9.0
-    networks:
-      - local_otel
     volumes:
       - ./loki.yaml:/etc/loki/local-config.yaml
 
@@ -34,17 +34,13 @@ services:
       - --web.enable-remote-write-receiver
       - --enable-feature=exemplar-storage
     image: prom/prometheus:v2.46.0
-    networks:
-      - local_otel
     volumes:
       - ./prometheus.yaml:/etc/prometheus.yaml
 
   tempo:
     command:
       - -config.file=/etc/tempo.yaml
-    image: grafana/tempo:2.2.3
-    networks:
-      - local_otel
+    image: grafana/tempo:2.4.2
     volumes:
       - ./tempo.yaml:/etc/tempo.yaml
       - /tmp/tempo

@@ -1,0 +1,38 @@
+exporters:
+  # outputs to the console
+  debug:
+    verbosity: basic
+  loki:
+    endpoint: 'http://loki:3100/loki/api/v1/push'
+  otlp:
+    endpoint: tempo:4317
+    tls:
+      insecure: true
+  prometheusremotewrite:
+    endpoint: 'http://prometheus:9090/api/v1/write'
+    tls:
+      insecure: true
+
+processors:
+  batch:
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+      http:
+
+service:
+  pipelines:
+    logs:
+      exporters: [debug, loki]
+      processors: [batch]
+      receivers: [otlp]
+    metrics:
+      exporters: [debug, prometheusremotewrite]
+      processors: [batch]
+      receivers: [otlp]
+    traces:
+      exporters: [debug, otlp]
+      processors: [batch]
+      receivers: [otlp]
